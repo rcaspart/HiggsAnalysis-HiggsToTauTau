@@ -16,7 +16,7 @@ Authors: Jose Benitez, Lorenzo Bianchini
 #include <iostream>
 #include <iomanip>
 
-#include "HiggsAnalysis/HiggsToTauTau/src/HttStyles.cc"
+#include "/afs/cern.ch/work/r/rcaspart/private/cmssw/limits_130916/CMSSW_6_1_1/src/HiggsAnalysis/HiggsToTauTau/src/HttStyles.cc"
 
 using namespace std;
 
@@ -175,7 +175,7 @@ void
 sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue=1.0)
 {  
   cout<<"Warning: using fitted mu-value = "<<MuValue<<" , make sure its up to date"<<endl;
-  
+  bool SM = outName.Contains("SM");
   int n=countInputs(Input);
   Int_t Rebin[NMAXINPUT];
   findRebin(Input,n,Rebin);
@@ -188,7 +188,12 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     gROOT->cd();
 
     TH1F* ggH=(TH1F*)(F.Get("ggH")->Clone("ggH"));
-    TH1F* Ztt=(TH1F*)(F.Get("Ztt")->Clone("Ztt"));
+    if(Input[f].Contains("emu") && SM){
+    TH1F* Ztt=(TH1F*)F.Get("ggH_hww")->Clone("Ztt");
+    }
+    else{
+    TH1F* Ztt=(TH1F*)F.Get("Ztt")->Clone("Ztt");
+    }
 
     weights[f]=getSoB(ggH,Ztt);
     weightsum+=weights[f];
@@ -231,7 +236,12 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     gROOT->cd();
 
     TH1F* ggH=(TH1F*)File.Get("ggH");
-    TH1F* Ztt=(TH1F*)File.Get("Ztt");
+    if(Input[f].Contains("emu") && SM){
+    TH1F* Ztt=(TH1F*)File.Get("ggH_hww")->Clone("Ztt");
+    }
+    else{
+    TH1F* Ztt=(TH1F*)File.Get("Ztt")->Clone("Ztt");
+    }
     if(!ggH || !Ztt){ cout<<" ggH or Ztt not found in "<<Input[f].Data()<<endl;}
 
     TH1F* signal=(TH1F*)ggH->Clone("signal");
@@ -258,7 +268,12 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
 
   TFile F1((Input[0]+".root").Data(),"READ");
   gROOT->cd();
+  if(Input[0].Contains("emu") && SM){
+  TH1F* Ztt1=(TH1F*)F1.Get("ggH_hww");
+  }
+  else{
   TH1F* Ztt1=(TH1F*)F1.Get("Ztt");
+  }
   TH1F* ggH1=(TH1F*)F1.Get("ggH");
 
   ///Signal
@@ -273,7 +288,7 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
   if(Rebin[0]) signal->Rebin(2);
 
   //Background
-  TH1F* Ztt=(TH1F*)Ztt1->Clone("Ztt");
+  TH1F* Ztt=((TH1F*)F1.Get("Ztt")->Clone("Ztt"));
   if(weight==1)Ztt->Scale(weights[0]);
   if(Rebin[0]) Ztt->Rebin(2);
 
@@ -295,6 +310,12 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
   if(weight==1)Fakes->Scale(weights[0]);
   if(Rebin[0]) Fakes->Rebin(2);
   
+  if(Input[0].Contains("emu") && SM){
+  TH1F* ggH_hww=(TH1F*)(F1.Get("ggH_hww")->Clone("ggH_hww"));
+  if(weight==1)ggH_hww->Scale(weights[0]);
+  if(Rebin[0]) ggH_hww->Rebin(2);
+  }
+
   F1.Close();
 
   //printf("%.4f %s\n",weights[0],Input[0].Data());
@@ -304,9 +325,17 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
 
     TH1F* ggH2=(TH1F*)(F2.Get("ggH")->Clone("ggH2"));
     TH1F* Ztt2=(TH1F*)(F2.Get("Ztt")->Clone("Ztt2"));
+    if(Input[f].Contains("emu") && SM){
+    TH1F* ggH_hww2=(TH1F*)(F2.Get("ggH_hww")->Clone("ggH_hww2"));
+    }
 
     TH1F* signal2=(TH1F*)ggH2->Clone("signal2");
+    if(Input[f].Contains("emu") && SM){
+    signal2->Add(ggH_hww2,-1);
+    }
+    else{
     signal2->Add(Ztt2,-1);
+    }
     signal2->Scale(SignalScale);
 
     TH1F* data_obs2=(TH1F*)(F2.Get("data_obs")->Clone("data_obs2"));
@@ -322,7 +351,9 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     TT2->Scale(weight==1 ? weights[f] : 1);
     EWK2->Scale(weight==1 ? weights[f] : 1);
     Fakes2->Scale(weight==1 ? weights[f] : 1);
-
+    if(Input[f].Contains("emu") && SM){
+    ggH_hww2->Scale(weight==1 ? weights[f] : 1);
+    }
     ///Rebin
     if(Rebin[f])ggH2->Rebin(2);
     if(Rebin[f])signal2->Rebin(2);
@@ -331,6 +362,9 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     if(Rebin[f])TT2->Rebin(2);
     if(Rebin[f])EWK2->Rebin(2);
     if(Rebin[f])Fakes2->Rebin(2);
+    if(Input[f].Contains("emu") && SM){
+    if(Rebin[f])ggH_hww2->Rebin(2);
+    }
 
     //Combine
     ggH->Add(ggH2);
@@ -340,6 +374,12 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     TT->Add(TT2);
     EWK->Add(EWK2);
     Fakes->Add(Fakes2);
+    if(Input[f].Contains("emu") && SM){
+    ggH_hww->Add(ggH_hww2);
+    }
+    else{
+    if(Input[0].Contains("emu") && SM){ggH_hww->Add(Ztt);}
+    }
 
     F2.Close();
 
@@ -350,6 +390,9 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
     delete TT2;
     delete EWK2;
     delete Fakes2;
+    if(Input[f].Contains("emu") && SM){
+    delete ggH_hww2;
+    }
   }
 
   TString outname=TString("Plot_")+outName+".root";
@@ -362,6 +405,10 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
   TT->Write();
   EWK->Write();
   Fakes->Write();
+  if(Input[0].Contains("emu") && SM){
+  ggH_hww->Write();
+  }
+
   outFile.ls();
   outFile.Close();
 
@@ -372,6 +419,9 @@ sobWeightedCombine(TString *Input, TString outName, int weight=1, float  MuValue
   delete TT;
   delete EWK;
   delete Fakes;
+  if(Input[0].Contains("emu") && SM){
+  delete ggH_hww;
+  }
 }
 
 
@@ -491,6 +541,7 @@ sobWeightedPlot(TString filename,const char* dataset , const char* channel,const
   TH1F* tt=(TH1F*)F.Get("ttbar");
   TH1F* ewk=(TH1F*)F.Get("EWK");
   TH1F* fakes=(TH1F*)F.Get("Fakes");
+  TH1F* ggH_hww=(TH1F*)F.Get("ggH_hww");
   if(!sig){cout<<"No input histograms in file: "<<filename.Data()<<endl; return;}
 
   float xmininset=60; float xmaxinset=180;
@@ -536,7 +587,8 @@ sobWeightedPlot(TString filename,const char* dataset , const char* channel,const
   ggH->SetLineStyle(1);
   ggH->SetLineWidth(0.);
 
-  TH1F* errorBand = (TH1F*)Ztt->Clone("errorBand");
+  if(ggH_hww){TH1F* errorBand = (TH1F*)ggH_hww->Clone("errorBand");}
+  else{TH1F* TH1F* errorBand = (TH1F*)Ztt->Clone("errorBand");}
   errorBand->SetMarkerSize(0);
   errorBand->SetFillColor(1);
   errorBand->SetFillStyle(3013);
@@ -552,7 +604,8 @@ sobWeightedPlot(TString filename,const char* dataset , const char* channel,const
   legend.SetBorderSize(0);
   legend.AddEntry(ggH,higgslabel,"F");
   if(tanb>0) legend.AddEntry((TObject*)0, mssmlabel, "");
-  legend.AddEntry(data,"observed","LP");  
+  legend.AddEntry(data,"observed","LP"); 
+  if(ggH_hww){legend.AddEntry(ggH_hww, "H(125 GeV)#rightarrowWW", "F")};
   legend.AddEntry(Ztt,"Z#rightarrow#tau#tau","F");
   legend.AddEntry(tt,"t#bar{t}","F");
   legend.AddEntry(ewk,"electroweak","F");
@@ -572,9 +625,11 @@ sobWeightedPlot(TString filename,const char* dataset , const char* channel,const
   legend.SetTextAlign(   12 );
 
   //TH1F* dataDiff=diffPlot(data,Ztt,2);
-  TH1F* dataDiff=diffPlot(data,Ztt,1);
+  if(ggH_hww){TH1F* dataDiff=diffPlot(data,ggH_hww,1);}
+  else{TH1F* dataDiff=diffPlot(data,Ztt,1);}
 
-  TH1F* errBand=getErrorBand(Ztt);
+  if(ggH_hww){TH1F* errBand=getErrorBand(ggH_hww);}
+  else{TH1F* errBand=getErrorBand(Ztt);}
   errBand->SetFillStyle(3013);//1001=solid , 3004,3005=diagonal, 3013=hatched official for H->tau tau
   errBand->SetFillColor(1);
   errBand->SetLineStyle(1);
@@ -633,6 +688,7 @@ sobWeightedPlot(TString filename,const char* dataset , const char* channel,const
   C.cd();  
   Ztt->Draw("hist");
   ggH->Draw("histsame");
+  if(ggH_hww){ggH_hww->Draw("histsame");}
   Ztt->Draw("histsame");
   errorBand->Draw("e2same");
   tt->Draw("histsame");
