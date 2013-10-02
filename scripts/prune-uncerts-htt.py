@@ -21,6 +21,15 @@ parser.add_option("--comment-nuisances", dest="comment_nuisances", default=False
                   help="Use this option if you want to comment the uncertainties added to the list of pruned nuisance parameters from the tested datacards at the same time. [Default: False]")
 parser.add_option("--shielding", dest="shielding", default="", type="string",
                   help="This parameter allows to apply a shielding of bin-by-bin uncertainties in sensitive regions of the input histograms. A shielding window has to be defined by two float values separated by a call-on (i.e. value1:value2). Value1 corresponds to the central value of the sensitive region in the input histogram. Value2 corresponds to a window size given as relative value (e.g. 125:0.3, 0.3 corresponds to 30%). More than one window can be passed via this option. Then the individual value pairs should be embraced by quotation marks and separated by whitespace. [Default: \"\"]")
+parser.add_option("--per-category", dest="perCat", default=False, action="store_true",
+                  help="Use this option if you want to use different thresholds for each category. It also requires the option --cat-threshold to be set. [Default: False]")
+parser.add_option("--cat-threshold", dest="catThreshold", default="", type="string",
+                  help="The threshold to determine the nuisance parameters to be pruned. The value corresponds to the relative shift of the parameter in the maximum likelihood fit(s). If the shift of the nuisance parameter falls below this threshold the nuisance parameter will be added to the list of nuisance parameters to be pruned. [Default: \"\"]")
+parser.add_option("-a", "--analyses", dest="analyses", default="no-bbb, bbb, bbb:hww-bg",
+                  help="Type of analyses to be considered for updating. Lower case is required. Possible choices are: \"no-bbb, bbb, bbb:hww-bg, mvis, inclusive\" [Default: \"no-bbb, bbb, bbb:hww-bg\"]")
+parser.add_option("-c", "--config", dest="config", default="",
+                  help="Additional configuration file to be used for the setup [Default: \"\"]")
+
 (options, args) = parser.parse_args()
 ## check number of arguments; in case print usage
 if len(args) < 1 :
@@ -31,36 +40,34 @@ import os
 import glob
 import random
 import string
+import sys
 from HiggsAnalysis.HiggsToTauTau.HttPruner import HttPruner
+from HiggsAnalysis.HiggsToTauTau.LimitsConfig import configuration
 
-def remove_empty_strings(list) :
-    """
-    Remove emptry strings from list
-    """
-    indices = []
-    for idx in range(len(list)) :
-        if list[idx] == '' : indices.append(idx)
-    for idx in indices :
-        list.pop(idx)
-    return list
-        
 def main() :
     ## turn options.fit_results into a list
     fit_results = options.fit_results.replace('$PWD', os.getcwd()).split(' ')
     for idx in range(len(fit_results)) : fit_results[idx] = fit_results[idx].rstrip(',')
-    fit_results = remove_empty_strings(fit_results)
+    fit_results = filter(bool, fit_results)
     ## turn options.blacklist into a list
     blacklist = options.blacklist.split(' ')
     for idx in range(len(blacklist)) : blacklist[idx] = blacklist[idx].rstrip(',')
-    blacklist = remove_empty_strings(blacklist)
+    blacklist = filter(bool, blacklist)
     ## turn options.whitelist into a list
     whitelist = options.whitelist.split(' ')
     for idx in range(len(whitelist)) : whitelist[idx] = whitelist[idx].rstrip(',')
-    whitelist = remove_empty_strings(whitelist)
+    whitelist = filter(bool, whitelist)
     ## turn options.shielding into a list
     shielding = options.shielding.split(' ')
     for idx in range(len(shielding)) : shielding[idx] = shielding[idx].rstrip(',')
-    shielding = remove_empty_strings(shielding)
+    shielding = filter(bool, shielding)
+    ## turn options.catThreshold into a list
+    catThreshold = options.catThreshold.split(' ')
+    for idx in range(len(catThreshold)) : catThreshold[idx] = catThreshold[idx].rstrip(',')
+    catThreshold = filter(bool, catThreshold)
+
+    ## configuration
+    config=configuration(options.analyses, options.config)
 
     print "# --------------------------------------------------------------------------------------"
     print "# Pruning uncertainties. "
@@ -84,18 +91,51 @@ def main() :
         windows.append((elem[:elem.find(':')], elem[elem.find(':')+1:]))
 
     ## create a combined datacard from input datacards
-    datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
-    os.system("combineCards.py -S {PATH}/*.txt > {DATACARD}".format(PATH=args[0], DATACARD=datacard))
-
-    pruner = HttPruner(fit_results, options.metric, options.mass, options.threshold, blacklist, whitelist, options.comment_nuisances, windows)
-    ## determine list of all uncertainties from input datacards 
-    uncerts = pruner.determine_uncerts(datacard)
-    ## determine list of dropped and kept uncertainties from input datacards
-    (dropped, kept, confused) = pruner.prune(uncerts)
-    ## apply shielding if configured such
     rescued = 0
-    if len(windows)>0 :
-        (dropped, rescued) = pruner.shield_bbb_uncertainties(datacard, dropped, kept)
+    confused = 0
+    dropped = []
+    kept = []
+    if len(catThreshold) == len(catThreshold[config.categories[chn]['8TeV']):
+        if options.perCat:
+            rescued = 0
+            confused = 0
+            dropped = []
+            kept = []
+            for cat in config.categories[chn]['8TeV']:
+                datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
+                os.system("combineCards.py -S {PATH}/*htt*_{CAT}_*.txt > {DATACARD}".format(PATH=args[0], CAT=cat, DATACARD=datacard))
+
+                pruner = HttPruner(fit_results, options.metric, options.mass, catThreshold[config.categories[chn]['8TeV'].Index(cat)], blacklist, whitelist, options.comment_nuisances, windows)
+                ## determine list of all uncertainties from input datacards
+                uncerts = pruner.determine_uncerts(datacard)
+                ## determine list of dropped and kept uncertainties from input datacards
+                (dropped_tmp, kept_tmp, confused_tmp) = pruner.prune(uncerts)
+                ## apply shielding if configured such
+                rescued_tmp = 0
+                if len(windows)>0 :
+                    (dropped_tmp, rescued_tmp) = pruner.shield_bbb_uncertainties(datacard, dropped_tmp, kept_tmp)
+                rescued += rescued_tmp
+                confused += confused_tmp
+                dropped = dropped+dropped_tmp
+                kept = kept+kept_tmp
+        else:
+            sys.stderr.write("ERROR: Given thresholds per category but not specifying options. Aborting!\n")
+
+    else:
+        if options.perCat:
+            print "WARNING: not enough or unneccessary thresholds specified. Switching back to global theshold"
+        datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
+        os.system("combineCards.py -S {PATH}/*.txt > {DATACARD}".format(PATH=args[0], DATACARD=datacard))
+
+        pruner = HttPruner(fit_results, options.metric, options.mass, options.threshold, blacklist, whitelist, options.comment_nuisances, windows)
+        ## determine list of all uncertainties from input datacards 
+        uncerts = pruner.determine_uncerts(datacard)
+        ## determine list of dropped and kept uncertainties from input datacards
+        (dropped, kept, confused) = pruner.prune(uncerts)
+        ## apply shielding if configured such
+        rescued = 0
+        if len(windows)>0 :
+            (dropped, rescued) = pruner.shield_bbb_uncertainties(datacard, dropped, kept)
     ## write dropped and kept uncertainties to file
     pruner.list_to_file(kept   , "uncertainty-pruning-keep.txt")
     pruner.list_to_file(dropped, "uncertainty-pruning-drop.txt")
