@@ -31,7 +31,9 @@ class configuration:
         self.bbbcat={}
         self.bbbproc={}
         self.bbbthreshold={}
+        self.bbbpruning={}
         for channel in self.channels:
+            self.bbbpruning[channel]=self.config.get('bbb-'+mode,channel+'_pruning').split()
             self.bbbthreshold[channel]=self.config.get('bbb-'+mode,channel+'_threshold')
             self.bbbcat[channel]={}
             for period in self.periods:

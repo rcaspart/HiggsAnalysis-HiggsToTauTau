@@ -105,7 +105,7 @@ def main() :
                 datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
                 os.system("combineCards.py -S {PATH}/*htt*_{CAT}_*.txt > {DATACARD}".format(PATH=args[0], CAT=cat, DATACARD=datacard))
 
-                pruner = HttPruner(fit_results, options.metric, options.mass, catThreshold[config.categories[chn]['8TeV'].Index(cat)], blacklist, whitelist, options.comment_nuisances, windows)
+                pruner = HttPruner(fit_results, options.metric, options.mass, config.bbbpruning[chn][config.categories[chn]['8TeV'].Index(cat)], blacklist, whitelist, options.comment_nuisances, windows)
                 ## determine list of all uncertainties from input datacards
                 uncerts = pruner.determine_uncerts(datacard)
                 ## determine list of dropped and kept uncertainties from input datacards
@@ -120,6 +120,7 @@ def main() :
                 kept = kept+kept_tmp
         else:
             sys.stderr.write("ERROR: Given thresholds per category but not specifying options. Aborting!\n")
+            exit(1)
 
     else:
         if options.perCat:
