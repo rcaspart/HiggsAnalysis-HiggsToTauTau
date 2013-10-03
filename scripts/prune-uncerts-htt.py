@@ -25,8 +25,7 @@ parser.add_option("--per-category", dest="perCat", default=False, action="store_
                   help="Use this option if you want to use different thresholds for each category. It also requires the option --cat-threshold to be set. [Default: False]")
 parser.add_option("--cat-threshold", dest="catThreshold", default="", type="string",
                   help="The threshold to determine the nuisance parameters to be pruned. The value corresponds to the relative shift of the parameter in the maximum likelihood fit(s). If the shift of the nuisance parameter falls below this threshold the nuisance parameter will be added to the list of nuisance parameters to be pruned. [Default: \"\"]")
-parser.add_option("-a", "--analyses", dest="analyses", default="no-bbb, bbb, bbb:hww-bg",
-                  help="Type of analyses to be considered for updating. Lower case is required. Possible choices are: \"no-bbb, bbb, bbb:hww-bg, mvis, inclusive\" [Default: \"no-bbb, bbb, bbb:hww-bg\"]")
+parser.add_option("-a", "--analysis", dest="analysis", default="sm", type="choice", help="Type of analysis (sm or mssm). Lower case is required. [Default: sm]", choices=["sm", "mssm"])
 parser.add_option("-c", "--config", dest="config", default="",
                   help="Additional configuration file to be used for the setup [Default: \"\"]")
 
@@ -67,7 +66,7 @@ def main() :
     catThreshold = filter(bool, catThreshold)
 
     ## configuration
-    config=configuration(options.analyses, options.config)
+    config=configuration(options.analysis, options.config)
 
     print "# --------------------------------------------------------------------------------------"
     print "# Pruning uncertainties. "
@@ -95,36 +94,26 @@ def main() :
     confused = 0
     dropped = []
     kept = []
-    if len(catThreshold) == len(catThreshold[config.categories[chn]['8TeV']):
-        if options.perCat:
-            rescued = 0
-            confused = 0
-            dropped = []
-            kept = []
-            for cat in config.categories[chn]['8TeV']:
-                datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
-                os.system("combineCards.py -S {PATH}/*htt*_{CAT}_*.txt > {DATACARD}".format(PATH=args[0], CAT=cat, DATACARD=datacard))
+    if options.perCat:
+        for cat in config.categories[chn]['8TeV']:
+            datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
+            os.system("combineCards.py -S {PATH}/*htt*_{CAT}_*.txt > {DATACARD}".format(PATH=args[0], CAT=cat, DATACARD=datacard))
 
-                pruner = HttPruner(fit_results, options.metric, options.mass, config.bbbpruning[chn][config.categories[chn]['8TeV'].Index(cat)], blacklist, whitelist, options.comment_nuisances, windows)
-                ## determine list of all uncertainties from input datacards
-                uncerts = pruner.determine_uncerts(datacard)
-                ## determine list of dropped and kept uncertainties from input datacards
-                (dropped_tmp, kept_tmp, confused_tmp) = pruner.prune(uncerts)
-                ## apply shielding if configured such
-                rescued_tmp = 0
-                if len(windows)>0 :
-                    (dropped_tmp, rescued_tmp) = pruner.shield_bbb_uncertainties(datacard, dropped_tmp, kept_tmp)
-                rescued += rescued_tmp
-                confused += confused_tmp
-                dropped = dropped+dropped_tmp
-                kept = kept+kept_tmp
-        else:
-            sys.stderr.write("ERROR: Given thresholds per category but not specifying options. Aborting!\n")
-            exit(1)
+            pruner = HttPruner(fit_results, options.metric, options.mass, config.bbbpruning[chn][config.categories[chn]['8TeV'].Index(cat)], blacklist, whitelist, options.comment_nuisances, windows)
+            ## determine list of all uncertainties from input datacards
+            uncerts = pruner.determine_uncerts(datacard)
+            ## determine list of dropped and kept uncertainties from input datacards
+            (dropped_tmp, kept_tmp, confused_tmp) = pruner.prune(uncerts)
+            ## apply shielding if configured such
+            rescued_tmp = 0
+            if len(windows)>0 :
+                (dropped_tmp, rescued_tmp) = pruner.shield_bbb_uncertainties(datacard, dropped_tmp, kept_tmp)
+            rescued += rescued_tmp
+            confused += confused_tmp
+            dropped = dropped+dropped_tmp
+            kept = kept+kept_tmp
 
     else:
-        if options.perCat:
-            print "WARNING: not enough or unneccessary thresholds specified. Switching back to global theshold"
         datacard='/tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
         os.system("combineCards.py -S {PATH}/*.txt > {DATACARD}".format(PATH=args[0], DATACARD=datacard))
 
