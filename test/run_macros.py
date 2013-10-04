@@ -199,7 +199,7 @@ for chn in config.channels :
             for sca in ["true", "false"] :
                 for i in range(len(log[chn,cat])) :
                     if chn == "hbb" :
-                        bash_script = "root -l -b -q {CHN}_{CAT}_{PER}.C+\(\"{SCA}\",\"{LOG}\",{MIN},{MAX}\)".format(
+                        bash_script = "root -l -b -q {CHN}_{CAT}_{PER}.C+\(\"{SCA}\",\"{LOG}\",{MIN},{MAX},\\\"htt_{CHN}_{CAT}_{PER}\\\"\)".format(
                             SCA=sca,
                             LOG=log[(chn,cat)][i],
                             MIN=min[(chn,cat)][i],
@@ -209,7 +209,7 @@ for chn in config.channels :
                             PER=per
                             )
                     else :
-                        bash_script = "root -l -b -q htt_{CHN}_{CAT}_{PER}.C+\(\"{SCA}\",\"{LOG}\",{MIN},{MAX}\)".format(
+                        bash_script = "root -l -b -q htt_{CHN}_{CAT}_{PER}.C+\(\"{SCA}\",\"{LOG}\",{MIN},{MAX},\\\"htt_{CHN}_{CAT}_{PER}\\\"\)".format(
                             SCA=sca,
                             LOG=log[(chn,cat)][i],
                             MIN=min[(chn,cat)][i],

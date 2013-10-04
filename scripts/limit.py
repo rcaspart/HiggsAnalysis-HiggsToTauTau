@@ -507,9 +507,10 @@ for directory in args :
             if options.hide_fitresult :
                 redirect = '> /tmp/'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
             ## run maximum likelihood fit
-            print "combine -M MaxLikelihoodFit -m {mass} {minuit} {stable} {user} {wdir}/tmp.root --out=out".format(
+            print "combine -M MaxLikelihoodFit --saveNormalizations --saveShapes --saveWithUncertainties -m {mass} {minuit} {stable} {user} {wdir}/tmp.root --out=out".format(
                 mass=mass, minuit=minuitopt, stable=stableopt, user=options.userOpt, wdir=options.workingdir)
-            os.system("combine -M MaxLikelihoodFit -m {mass} {minuit} {stable} {user} {wdir}/tmp.root --out=out {redir}".format(
+            #os.system("combine -M MaxLikelihoodFit --saveNormalizations --saveShapes --saveWithUncertainties -m {mass} {minuit} {stable} {user} {wdir}/tmp.root --out=out {redir}".format(
+            os.system("combine -M MaxLikelihoodFit --saveShapes --saveWithUncertainties -m {mass} {minuit} {stable} {user} {wdir}/tmp.root --out=out {redir}".format(
                 mass=mass, minuit=minuitopt, stable=stableopt, user=options.userOpt, wdir=options.workingdir, redir=redirect))
             ## change to sub-directory out and prepare formated output
             os.chdir(os.path.join(subdirectory, "out"))

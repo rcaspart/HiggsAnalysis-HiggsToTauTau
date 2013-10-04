@@ -40,6 +40,7 @@ if not options.skip :
 
 if options.analysis == "sm" :
     system("cp -v %s/out/mlfit.txt ./fitresults/mlfit_sm.txt" % dir)
+    system("cp -v %s/out/mlfit.root ./fitresults/mlfit.root" % dir)
     system("cp -v %s/*.txt ./datacards" % dir)
     system("cp -v %s/../common/*TeV.root ./root" % dir)
     ## for mm override the histograms as used for the limit calculation in favour of something more human readible
