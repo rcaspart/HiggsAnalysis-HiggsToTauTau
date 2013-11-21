@@ -1,5 +1,6 @@
 from optparse import OptionParser, OptionGroup
 from HiggsAnalysis.HiggsToTauTau.LimitsConfig import configuration
+from HiggsAnalysis.HiggsToTauTau.utils import get_channel_dirs
 
 ## set up the option parser
 parser = OptionParser(usage="usage: %prog [options]",
@@ -251,13 +252,14 @@ for per in config.comb_periods:
     for chan in config.comb_channels:
         chn = channels[chan]
         logarithm = "LOG" if (chn in ["mumu","ee"] or options.analysis == "mssm") else "LIN"
+        category_names = [get_channel_dirs(chan,"0"+cat,per,True) if len(cat)==1 else get_channel_dirs(chan,cat,per,True) for cat in config.categories[chan][per]]
         for cat in config.comb_categories:
             ## check whether the category which is to be processed is one of the "normal" categories
-            if cat not in config.categoryname[chan]:
+            if cat not in category_names:
                 if len(per.split('_')) == 1:
                     ## find all categories whos name contain the pattern {CAT} as substring
-                    ## the category must be valid for the corresponding period. For 7TeV and 8TeV it must be valid for 7TeV
-                    cat_add = [category for category in config.categoryname[chan] if (cat in category and config.categoryname[chan].index(category) < len(config.categories[chan][per.split("_")[0]]))]
+                    ## the category must be valid for the corresponding period
+                    cat_add = [category for category in category_names if (cat in category)]
                     rootfiles = ["{CHN}_{CAT}_{TYPE}_{PERIOD}_{LOG}.root".format(CHN=chn, CAT=category, TYPE=type, LOG=logarithm, PERIOD = per) for category in cat_add]
                     ## loop over all given configurations
                     for idx in range(len(min[chn,cat])):

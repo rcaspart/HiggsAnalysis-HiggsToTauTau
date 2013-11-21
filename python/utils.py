@@ -94,7 +94,7 @@ def parseArgs(args) :
                 list.append(elem)
     return list
 
-def get_channel_dirs(finalstate, category, period):
+def get_channel_dirs(finalstate, category, period, catonly=False):
     ''' Turn 'mt' + 00 -> muTau_0jet_low '''
     fs_map = {
         'mt'  : 'muTau',
@@ -247,7 +247,7 @@ def get_channel_dirs(finalstate, category, period):
         '06' : ['mmtt_zh', 'eett_zh' ],
         '07' : ['mtt'],
         '08' : ['ett'],
-        },        
+        },
     }
     }
     if fs_map[finalstate] == '' :
@@ -255,7 +255,7 @@ def get_channel_dirs(finalstate, category, period):
     else :
         combined_names = []
         for dir in cat_map[period][finalstate][category] :
-            combined_names.append(fs_map[finalstate]+'_'+dir)
+            combined_names.append(dir if catonly else fs_map[finalstate]+'_'+dir)
         return combined_names
 
 def get_shape_systematics(setup, period, channel, category, proc):

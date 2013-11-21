@@ -1,4 +1,5 @@
 from HiggsAnalysis.HiggsToTauTau.LimitsConfig import configuration
+from HiggsAnalysis.HiggsToTauTau.utils import get_channel_dirs
 from optparse import OptionParser, OptionGroup
 import os
 
@@ -292,18 +293,11 @@ for chn in config.channels :
             else :
                 process_weight, process_shape_weight, process_uncertainties, process_shape_uncertainties = parse_dcard("datacards/htt_{CHN}_{CAT}_{PER}.txt".format(CHN=chn, CAT=cat, PER=per), fitresults, "ANYBIN")
                 ## the work around for the naming is needed to account for vbf in 7TeV in et and mt
-                if per == '7TeV' and cat == '6' and chn in ['mt','et']:
-                   plots = Analysis(options.analysis, histfile, config.categoryname[chn][config.categories[chn][per].index(cat)][:3],
-                                    process_weight, process_shape_weight, process_uncertainties, process_shape_uncertainties,
-                                    "templates/HTT_{CHN}_X_template.C".format(CHN=chn.upper()),
-                                    "htt_{CHN}_{CAT}_{PER}.C".format(CHN=chn, CAT=cat, PER=per)
-                                    )
-                else:
-                   plots = Analysis(options.analysis, histfile, config.categoryname[chn][config.categories[chn][per].index(cat)],
-                                    process_weight, process_shape_weight, process_uncertainties, process_shape_uncertainties,
-                                    "templates/HTT_{CHN}_X_template.C".format(CHN=chn.upper()),
-                                    "htt_{CHN}_{CAT}_{PER}.C".format(CHN=chn, CAT=cat, PER=per)
-                                    )
+                plots = Analysis(options.analysis, histfile, get_channel_dir(chn,"0"+cat,per,True),
+                                process_weight, process_shape_weight, process_uncertainties, process_shape_uncertainties,
+                                "templates/HTT_{CHN}_X_template.C".format(CHN=chn.upper()),
+                                "htt_{CHN}_{CAT}_{PER}.C".format(CHN=chn, CAT=cat, PER=per)
+                                )
             plots.run()
             scale_file=open("scales_{CHN}_{CAT}_{PER}.py".format(CHN=chn, CAT=cat, PER=per),'w')
             scale_file.write("scales="+str(plots.scale_output))
