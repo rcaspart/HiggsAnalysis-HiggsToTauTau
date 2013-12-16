@@ -49,6 +49,8 @@ parser.add_option("-c", "--config", dest="config", default="",
                   help="Additional configuration file to be used for the setup [Default: \"\"]")
 parser.add_option("--interpolate", dest="interpolate", default="",
                   help="Step size for interpolation of masspoints between the given arguments. [Default: \"\"]")
+parser.add_option("--non-vh-coupling", dest="nonvh", default=False, action="store_true",
+                  help="setup the directory to be sufficient for a non-vh coupling higgs boson. [Default: False]")
 
 ## check number of arguments; in case print usage
 (options, args) = parser.parse_args()
@@ -77,6 +79,10 @@ cmssw_base=os.environ['CMSSW_BASE']
 os.system("mkdir -p backup")
 ## configuration
 config=configuration('sm', options.config, options.add_mutau_soft)
+## remove vhtt from channels if probing for additional non-vh coupling higgs
+if options.nonvh:
+    if 'vhtt' in config.channels:
+        config.channels.remove('vhtt')
 
 ## define inputs from cvs; Note: not all analyses are available for all inputs
 directories = {}
@@ -456,6 +462,17 @@ if options.update_setup :
                             cgs_adaptor.cgs_processes(filename,['ZH_htt','ZH_hww'],None,None,['ZH_hww125'])
                     for file in glob.glob("{DIR}/{ANA}/{CHN}/unc-sm-*.vals".format(DIR=dir, ANA=ana[ana.find(':')+1:], CHN=chn)) :
                         os.system("perl -pi -e 's/ZH_hww125/ZH_hww/g' {FILE}".format(FILE=file))
+    if options.nonvh:
+        os.system("cp -r %s %s"%(dir,dir+tmp))
+        setupfolder = dir+tmp
+        cgs_adaptor = UncertAdaptor()
+        for chn in config.channels:
+            for period in config.periods:
+                for category in config.categories[chn][period]:
+                    filename="{DIR}/{TARGET}/{CHN}/cgs-sm-{PERIOD}-0{CATEGORY}.conf".format(DIR=dir, TARGET=ana[ana.find(':')+1:], CHN=chn, PERIOD=period, CATEGORY=category)
+                    print 'processing file:', filename
+                    cgs_adaptor.cgs_processes(filename,['ggH'],None,None,None)
+            
 
 if options.update_aux :
     print "##"
@@ -521,6 +538,8 @@ if options.update_aux :
                 for dir in '{DIR}/{ANA}/sm/{CHN}'.format(DIR=dir, ANA=ana, CHN=chn if chn == 'vhtt' else 'htt_'+chn):
                     cardMaker.cleanup(dir, '_asimov')
                     cardMaker.make_asimov_datacards(dir, False)
+        if options.nonvh:
+            os.system("addHiggs2BG.py --uncet-inputs %s %s/%s"%(setupfolder, dir,ana))
 
 if options.update_limits :
     print "##"
