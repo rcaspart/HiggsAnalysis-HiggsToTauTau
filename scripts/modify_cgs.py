@@ -9,6 +9,7 @@ parser.add_argument("--periods", "-p", nargs="*", dest="periods", help="Periods 
 parser.add_argument("--categories", "-cat", nargs="*", dest="categories", help="Categories to be edited.")
 parser.add_argument("--add-to-signal", "-as", nargs="*", dest="addsignal", help="Processes to be added to the signal.")
 parser.add_argument("--add-to-background", "-ab", nargs="*", default='', dest="addbackground", help="Processes to be added to the background.")
+parser.add_argument("--verbose", "-v", default=False, dest="verbose", action="store_true", help="Enable verbose output.")
 opt=parser.parse_args()
 
 import os
@@ -26,6 +27,7 @@ def main() :
     print "# --categories        :", opt.categories
     print "# --add-to-signal     :", opt.addsignal
     print "# --add-to-background :", opt.addbackground
+    print "# --verbose           :", opt.verbose
     print "# Check option --help in case of doubt about the meaning of one or more of these confi-"
     print "# guration parameters.                           "
     print "# --------------------------------------------------------------------------------------"
@@ -37,6 +39,6 @@ def main() :
             for category in opt.categories :
                 filename="{SETUP}/{CHANNEL}/cgs-{ANA}-{PERIOD}-{CATEGORY}.conf".format(SETUP=setuppath, CHANNEL=channel, ANA=opt.analysis, PERIOD=period, CATEGORY=category)
                 print 'processing file:', filename
-                cgs_shuffle.cgs_processes(filename, opt.addsignal, opt.addbackground)
+                cgs_shuffle.cgs_processes(filename, opt.addsignal, opt.addbackground, opt.verbose)
 
 main()

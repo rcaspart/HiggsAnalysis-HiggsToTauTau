@@ -16,7 +16,7 @@ class UncertAdaptor(object) :
         ## regex pattern to remove whitespaces if needed
         self.whitespace = re.compile(r',\s*,')
 
-    def cgs_processes(self, cgs_path, signal_procs=None, background_procs=None, signal_drop=None, background_drop=None) :
+    def cgs_processes(self, cgs_path, signal_procs=None, background_procs=None, signal_drop=None, background_drop=None, verbose=False) :
         """
         Add processes to signal and/or background in the cgs file located at cgs_path. In case there is no definition of
         signal add or uncomment it. In case any element in processes is part of the backgrounds remomve it from the
@@ -44,7 +44,10 @@ class UncertAdaptor(object) :
                 backgrounds = self.setup_processes(backgrounds, None, background_drop)
                 line=line+','.join(backgrounds)+'\n'
             file_new.write(line)
-        os.system("mv -v %s_tmp %s"%(cgs_path, cgs_path))
+        if verbose:
+            os.system("mv -v %s_tmp %s"%(cgs_path, cgs_path))
+        else:
+            os.system("mv %s_tmp %s"%(cgs_path, cgs_path))
     def setup_processes(self, processes, appends, removes):
         """
         Basic function to first remove strings given in removes from processes and afterwards append strings given in appends
