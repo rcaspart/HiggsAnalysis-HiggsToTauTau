@@ -50,7 +50,7 @@ def copy_histos(file, category, processes, uncerts, mass):
                         file.cd(category)
                         new_hist.Write(category+"/"+hist.GetName().replace(mass,"_SM"), ROOT.TObject.kOverwrite)
                     
-def addHiggs2BG(setup, channels, mass, mssm=False):
+def addHiggs2BG(setup, channels, mass, signal=None):
     '''
     This function takes a setup path and set of channels.
     It loops over all present sm configurations and adds an additional higgs with suffix '_SM'
@@ -68,6 +68,8 @@ def addHiggs2BG(setup, channels, mass, mssm=False):
                 catnumber = matcher.search(file).group('CAT')
                 per = matcher.search(file).group('PER')
                 cat,sig_proc = signal_processes(file)
+                if signal:
+                    sig_proc = signal
                 if per in categories:
                     categories[per].extend(cat.split(','))
                 else:
@@ -84,16 +86,20 @@ def addHiggs2BG(setup, channels, mass, mssm=False):
                     ## ensure the list contains only unique entries
                     uncerts[per][catname]=list(set(uncerts[per][catname]))
     
-                unc_val = open(file.replace('cgs','unc').replace('conf','vals'), 'r')
-                outfile = open(file.replace('cgs','unc').replace('conf','vals')+'_tmp','w')
+                unc_file = file.replace('cgs','unc').replace('conf','vals')
+                unc_val = open(unc_file, 'r')
+                outfile = open(unc_file+'_tmp','w')
                 for line in unc_val:
                     if line.strip() and line[0] != '#':
                         for proc in sig_proc:
                             if proc in line.strip().split()[1]:
                                 line = line.replace(proc, proc+','+proc+'_SM')
-                            if 'signals' in line.strip().split()[1]:
-                                line = line.replace('signals','signals,'+','.join([process+'_SM' for process in sig_proc]))
-                        outfile.write(line)
+                        if 'signal' in line.strip().split()[1]:
+                            line = line.replace('signal','signal,'+','.join([process+'_SM' for process in sig_proc]))
+                    outfile.write(line)
+                unc_val.close()
+                outfile.close()
+                os.system("mv "+unc_file+'_tmp '+unc_file)
         for filename in glob("{SETUP}/{CHN}/*.root".format(SETUP=setup,CHN=channel)):
             print "processing ", filename
             matcher = re.compile('(v?)htt(_?\w*).inputs-sm-(?P<PER>\d\w+).root')
