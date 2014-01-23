@@ -8,6 +8,7 @@ from HiggsAnalysis.HiggsToTauTau.scale2SM import RescaleSamples
 from HiggsAnalysis.HiggsToTauTau.utils import is_number
 from HiggsAnalysis.HiggsToTauTau.utils import parseArgs 
 from HiggsAnalysis.HiggsToTauTau.utils import get_shape_systematics
+from HiggsAnalysis.HiggsToTauTau.addHiggs2BG import addHiggs2BG
 
 ## set up the option parser
 parser = OptionParser(usage="usage: %prog [options] ARGs",
@@ -51,6 +52,12 @@ parser.add_option("--interpolate", dest="interpolate", default="",
                   help="Step size for interpolation of masspoints between the given arguments. [Default: \"\"]")
 parser.add_option("--finebin-morph", dest="rebin_morph", default=False, action="store_true",
                   help="Option to perform morphing for interpolation on fine binned templates. [Default: False]")
+parser.add_option("--higgs-as-background", dest="higgsBG", default=False, action="store_true",
+                  help="Option to add an additional SM Higgs with postfix '_SM' to the datacards. [Default: False]")
+parser.add_option("--background-mass", dest="higgsBGmass", default="125",
+                  help="Mass of the Higgs Boson which is added as background. [Default: \"125\"]")
+parser.add_option("--non-vh-coupling", dest="non_vh", default=False, action="store_true",
+                  help="Take the Higgs as not coupling to vector-bosons. This also adds a SM Higgs to the backgrounds with a mass as defined by --background-mass. [Default: False]")
 
 ## check number of arguments; in case print usage
 (options, args) = parser.parse_args()
@@ -464,12 +471,12 @@ if options.update_setup :
                     for file in glob.glob("{DIR}/{ANA}/{CHN}/unc-sm-*.vals".format(DIR=dir, ANA=ana[ana.find(':')+1:], CHN=chn)) :
                         os.system("perl -pi -e 's/ZH_hww125/ZH_hww/g' {FILE}".format(FILE=file))
         ## if requested apply horizontal morphing for processes to get templates for intermediate masses
+        setuppath=dir+"/"+ana[ana.find(':')+1:]
         if options.interpolate:
             for i in range(len(masspoints)-1):
                 for chn in config.channels:
                     for per in config.periods:
                         for cat in config.categories[chn][per]:
-                            setuppath=dir+"/"+ana[ana.find(':')+1:]
                             if chn == 'vhtt':
                                 for file in glob.glob("{SETUP}/{CHN}/vhtt.inputs-sm-{PER}*.root".format(SETUP=setuppath, CHN=chn, PER=per, CAT=cat)):
                                     if cat in ['0','1']:
@@ -503,6 +510,15 @@ if options.update_setup :
                                             template_morphing.run()
                 ## add the new points to the masses array
                 masses.append(masspoints[i]+'-'+masspoints[i+1]+':'+options.interpolate)
+        if options.higgsBG:
+            addHiggs2BG(setuppath,config.channels,options.higgsBGMass)
+        if options.non_vh:
+            for chn in config.channels:
+                for period in config.periods:
+                    for category in config.categories[chn][period]:
+                        filename="{DIR}/{TARGET}/{CHN}/cgs-sm-{PERIPD}-0{CATEGORY}.conf".format(DIR=dir,TARGET=ana[ana.find(':')+1:], CHN=chn, PERIOD=period, CATEGORY=category)
+                        cgs_adaptor.cgs_processes(filename,['ggH'],None,None,None)
+            addHiggs2BG(setuppath,config.channels,options.higgsBGMass,['ggH','qqH','VH'])
 
 if options.update_aux :
     print "##"
